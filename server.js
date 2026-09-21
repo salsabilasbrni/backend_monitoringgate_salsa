@@ -293,6 +293,56 @@ app.post("/api/reset", async (req, res) => {
 
 });
 
+// ================================
+// UPDATE RESPONSE TIME
+// ================================
+app.post("/api/sensor/:id/response-time", async (req, res) => {
+
+    try {
+
+        const { id } = req.params;
+        const { responseTime } = req.body;
+
+        const { data, error } = await supabase
+            .from("monitoring_reset_gate")
+            .update({
+                response_time: responseTime
+            })
+            .eq("id", id)
+            .select();
+
+        if (error) {
+
+            console.log("Update Response Time Error:", error);
+
+            return res.status(500).json({
+                success: false,
+                message: "Gagal update response time",
+                error: error.message
+            });
+
+        }
+
+        res.json({
+            success: true,
+            message: "Response time berhasil disimpan",
+            data: data
+        });
+
+    } catch (err) {
+
+        console.log("Server Error:", err);
+
+        res.status(500).json({
+            success: false,
+            message: "Terjadi kesalahan server",
+            error: err.message
+        });
+
+    }
+
+});
+
 // =======================
 // GET DATA TERBARU
 // =======================
