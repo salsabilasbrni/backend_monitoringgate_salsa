@@ -632,6 +632,125 @@ app.get("/api/report", async (req, res) => {
 
 // });
 
+// ===============================
+// GET SENDING STATUS
+// ===============================
+app.get("/api/device/sending-status", async (req, res) => {
+    try {
+
+        const { data, error } = await supabase
+            .from("device_control")
+            .select("sending_enabled")
+            .eq("id", 1)
+            .single();
+
+        if (error) {
+            console.log("Get sending status error:", error);
+
+            return res.status(500).json({
+                success: false,
+                message: "Gagal mengambil status sending"
+            });
+        }
+
+        res.json({
+            success: true,
+            sendingEnabled: data.sending_enabled
+        });
+
+    } catch (err) {
+
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            error: err.message
+        });
+
+    }
+});
+
+// ===============================
+// STOP SENDING
+// ===============================
+app.post("/api/device/sending/stop", async (req, res) => {
+    try {
+
+        const { data, error } = await supabase
+            .from("device_control")
+            .update({
+                sending_enabled: false,
+                updated_at: new Date().toISOString()
+            })
+            .eq("id", 1)
+            .select();
+
+        if (error) {
+            console.log("Stop sending error:", error);
+
+            return res.status(500).json({
+                success: false,
+                message: "Gagal menghentikan sending"
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Sending berhasil dihentikan",
+            data
+        });
+
+    } catch (err) {
+
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            error: err.message
+        });
+
+    }
+});
+
+// ===============================
+// START SENDING
+// ===============================
+app.post("/api/device/sending/start", async (req, res) => {
+    try {
+
+        const { data, error } = await supabase
+            .from("device_control")
+            .update({
+                sending_enabled: true,
+                updated_at: new Date().toISOString()
+            })
+            .eq("id", 1)
+            .select();
+
+        if (error) {
+            console.log("Start sending error:", error);
+
+            return res.status(500).json({
+                success: false,
+                message: "Gagal mengaktifkan sending"
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Sending berhasil diaktifkan",
+            data
+        });
+
+    } catch (err) {
+
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            error: err.message
+        });
+
+    }
+});
+
 // =======================
 // DEVICE INFORMATION
 // =======================
