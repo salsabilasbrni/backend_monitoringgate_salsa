@@ -259,7 +259,7 @@ app.post("/api/sensor", async (req, res) => {
 
     }
 
-});
+});pinp
 
 const axios = require("axios");
 
