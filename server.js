@@ -263,7 +263,7 @@ app.post("/api/sensor", async (req, res) => {
 
 const axios = require("axios");
 
-const ESP32_IP = "192.168.205.158";
+const ESP32_IP = "192.168.208.137";
 
 app.post("/api/reset", async (req, res) => {
 
