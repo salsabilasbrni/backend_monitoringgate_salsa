@@ -788,62 +788,48 @@ app.post("/api/device/sending/start", async (req, res) => {
 // DEVICE INFORMATION
 // =======================
 
+
 app.get("/api/device", async (req, res) => {
-
     try {
-
         const { data, error } = await supabase
-            .from("monitoring_reset_gate")
-            .select("created_at")
-            .order("created_at", { ascending: false })
-            .limit(1)
+            .from("device_heartbeat")
+            .select("device_id, last_seen")
+            .eq("id", 1)
             .single();
 
-        if (error) {
-            return res.status(500).json({
-                success: false,
-                error: error.message
+        if (error || !data) {
+            return res.json({
+                deviceId: "gate-esp32",
+                status: "Offline",
+                lastSeen: null,
+                database: "Connected",
+                firmware: "v1.0.0",
+                ip: "192.168.1.xxx",
+                wifi: "-58 dBm",
+                mac: "XX:XX:XX:XX:XX:XX"
             });
         }
 
-        const lastSeen = new Date(data.created_at);
-        const now = new Date();
-
-        const diff =
-            (now.getTime() - lastSeen.getTime()) / 1000;
+        const lastSeen = new Date(data.last_seen);
+        const diff = (Date.now() - lastSeen.getTime()) / 1000;
 
         res.json({
-
-            deviceId: "-",
-
-            status:
-                diff < 3900 ? "Online" : "Offline",
-
-            lastSeen: data.created_at,
-
+            deviceId: data.device_id,
+            status: diff < 90 ? "Online" : "Offline",
+            lastSeen: data.last_seen,
             database: "Connected",
-
             firmware: "v1.0.0",
-
             ip: "192.168.1.xxx",
-
             wifi: "-58 dBm",
-
             mac: "XX:XX:XX:XX:XX:XX"
-
         });
-
     } catch (err) {
-
         console.error("Device Error:", err);
-
         res.status(500).json({
             success: false,
             error: err.message
         });
-
     }
-
 });
 
 // app.get("/api/device", (req, res) => {
