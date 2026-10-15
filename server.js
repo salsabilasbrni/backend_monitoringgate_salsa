@@ -450,6 +450,39 @@ app.listen(PORT, () => {
     console.log(`Server berjalan di port ${PORT}`);
 });
 
+
+app.post("/api/device/heartbeat", async (req, res) => {
+    try {
+        const { error } = await supabase
+            .from("device_heartbeat")
+            .upsert(
+                {
+                    id: 1,
+                    device_id: "gate-esp32",
+                    last_seen: new Date().toISOString()
+                },
+                { onConflict: "id" }
+            );
+
+        if (error) {
+            console.error("Heartbeat error:", error.message);
+            return res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Heartbeat error:", err.message);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
+});
+
+
 // // =======================
 // // GET ALL DATA
 // // =======================
