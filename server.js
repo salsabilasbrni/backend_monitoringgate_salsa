@@ -259,11 +259,11 @@ app.post("/api/sensor", async (req, res) => {
 
     }
 
-});pinp
+});
 
 const axios = require("axios");
 
-const ESP32_IP = "192.168.208.137";
+const ESP32_IP = "192.168.205.49";
 
 app.post("/api/reset", async (req, res) => {
 
@@ -784,7 +784,7 @@ app.get("/api/device", async (req, res) => {
             deviceId: "-",
 
             status:
-                diff < 10 ? "Online" : "Offline",
+                diff < 3900 ? "Online" : "Offline",
 
             lastSeen: data.created_at,
 
