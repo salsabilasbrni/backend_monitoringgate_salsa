@@ -263,7 +263,7 @@ app.post("/api/sensor", async (req, res) => {
 
 const axios = require("axios");
 
-const ESP32_IP = "192.168.1.37";
+const ESP32_IP = "192.168.208.221";
 
 app.post("/api/reset", async (req, res) => {
 
@@ -481,6 +481,55 @@ app.post("/api/device/heartbeat", async (req, res) => {
         });
     }
 });
+
+// endpoint update counter setiap counter nambah
+
+app.post("/api/counter", async (req, res) => {
+    try {
+        const { counter } = req.body;
+
+        if (!Number.isSafeInteger(counter) || counter < 0) {
+            return res.status(400).json({
+                success: false,
+                error: "Counter harus berupa bilangan bulat non-negatif"
+            });
+        }
+
+        const { data, error } = await supabase
+            .from("gate_counter")
+            .upsert(
+                {
+                    id: 1,
+                    device_id: "gate-esp32",
+                    counter: counter,
+                    updated_at: new Date().toISOString()
+                },
+                { onConflict: "id" }
+            )
+            .select()
+            .single();
+
+        if (error) {
+            console.error("Counter error:", error.message);
+            return res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+
+        return res.json({
+            success: true,
+            data: data
+        });
+    } catch (err) {
+        console.error("Counter error:", err.message);
+        return res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
+});
+
 
 
 // // =======================
