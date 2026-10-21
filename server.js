@@ -666,7 +666,11 @@ app.get("/api/sensor/count", async (req, res) => {
 app.get("/api/report", async (req, res) => {
     try {
         const batchSize = 1000;
+        const startDate = "2026-10-16T00:00:00+07:00";
+
+        let totalRecords = 0;
         let allData = [];
+        let reportData = [];
         let from = 0;
 
         // Ambil seluruh data secara bertahap
@@ -699,7 +703,17 @@ app.get("/api/report", async (req, res) => {
                 break;
             }
 
+            // Semua data untuk total record dan motor counter
             allData = allData.concat(data);
+
+            // Data sejak 16 Oktober untuk statistik
+            reportData = reportData.concat(
+                data.filter(item =>
+                    item.created_at &&
+                    new Date(item.created_at) >= new Date(startDate)
+                )
+            );
+
             from += data.length;
 
             if (data.length < batchSize) {
@@ -707,22 +721,11 @@ app.get("/api/report", async (req, res) => {
             }
         }
 
-        if (allData.length === 0) {
-            return res.json({
-                totalRecords: 0,
-                avgReaderIn: 0,
-                avgScannerIn: 0,
-                avgReaderOut: 0,
-                avgScannerOut: 0,
-                avgMotorVoltage: 0,
-                maxMotorCurrent: 0,
-                motorCounter: 0,
-                lastUpdate: null
-            });
-        }
+        totalRecords = allData.length;
 
+        // Rata-rata berdasarkan data sejak 16 Oktober
         const avg = (field) => {
-            const values = allData
+            const values = reportData
                 .map(item => Number(item[field]))
                 .filter(value => Number.isFinite(value));
 
@@ -732,14 +735,16 @@ app.get("/api/report", async (req, res) => {
                 / values.length;
         };
 
+        // Maksimum arus motor sejak 16 Oktober
         const max = (field) => {
-            const values = allData
+            const values = reportData
                 .map(item => Number(item[field]))
                 .filter(value => Number.isFinite(value));
 
             return values.length ? Math.max(...values) : 0;
         };
 
+        // Data terbaru dari seluruh database
         const latest = allData.reduce((currentLatest, item) => {
             if (!item.created_at) return currentLatest;
             if (!currentLatest) return item;
@@ -751,14 +756,19 @@ app.get("/api/report", async (req, res) => {
         }, null);
 
         return res.json({
-            totalRecords: allData.length,
+            totalRecords,
             avgReaderIn: avg("reader_in_voltage"),
             avgScannerIn: avg("scanner_in_voltage"),
             avgReaderOut: avg("reader_out_voltage"),
             avgScannerOut: avg("scanner_out_voltage"),
             avgMotorVoltage: avg("motor_voltage"),
             maxMotorCurrent: max("motor_current"),
-            motorCounter: max("motor_counter"),
+            motorCounter: allData.reduce((maximum, item) => {
+                const value = Number(item.motor_counter);
+                return Number.isFinite(value)
+                    ? Math.max(maximum, value)
+                    : maximum;
+            }, 0),
             lastUpdate: latest?.created_at ?? null
         });
 
@@ -771,6 +781,7 @@ app.get("/api/report", async (req, res) => {
         });
     }
 });
+
 
 // app.get("/api/report", (req, res) => {
 
