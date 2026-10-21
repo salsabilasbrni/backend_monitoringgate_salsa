@@ -628,6 +628,35 @@ app.get("/api/sensor/all", async (req, res) => {
 
 });
 
+//endpoint untuk total record
+app.get("/api/sensor/count", async (req, res) => {
+    try {
+        const { count, error } = await supabase
+            .from("monitoring_reset_gate")
+            .select("*", { count: "exact", head: true });
+
+        if (error) {
+            console.error("Supabase Count Error:", error);
+
+            return res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+
+        res.json({ totalRecords: count ?? 0 });
+
+    } catch (err) {
+        console.error("Server Error:", err);
+
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
+});
+
+
 // =======================
 
 // GET REPORT STATISTICS
