@@ -662,29 +662,52 @@ app.get("/api/sensor/count", async (req, res) => {
 // GET REPORT STATISTICS
 // =======================
 //supabase
+
 app.get("/api/report", async (req, res) => {
     try {
-        const { data, error } = await supabase
-            .from("monitoring_reset_gate")
-            .select(`
-                reader_in_voltage,
-                scanner_in_voltage,
-                reader_out_voltage,
-                scanner_out_voltage,
-                motor_voltage,
-                motor_current,
-                motor_counter,
-                created_at
-            `);
+        const batchSize = 1000;
+        let allData = [];
+        let from = 0;
 
-        if (error) {
-            return res.status(500).json({
-                success: false,
-                error: error.message
-            });
+        // Ambil seluruh data secara bertahap
+        while (true) {
+            const { data, error } = await supabase
+                .from("monitoring_reset_gate")
+                .select(`
+                    id,
+                    reader_in_voltage,
+                    scanner_in_voltage,
+                    reader_out_voltage,
+                    scanner_out_voltage,
+                    motor_voltage,
+                    motor_current,
+                    motor_counter,
+                    created_at
+                `)
+                .order("id", { ascending: true })
+                .range(from, from + batchSize - 1);
+
+            if (error) {
+                console.error("Report Query Error:", error);
+                return res.status(500).json({
+                    success: false,
+                    error: error.message
+                });
+            }
+
+            if (!data || data.length === 0) {
+                break;
+            }
+
+            allData = allData.concat(data);
+            from += data.length;
+
+            if (data.length < batchSize) {
+                break;
+            }
         }
 
-        if (!data || data.length === 0) {
+        if (allData.length === 0) {
             return res.json({
                 totalRecords: 0,
                 avgReaderIn: 0,
@@ -698,40 +721,51 @@ app.get("/api/report", async (req, res) => {
             });
         }
 
-        const avg = (field) =>
-            data.reduce((sum, item) =>
-                sum + (Number(item[field]) || 0), 0
-            ) / data.length;
+        const avg = (field) => {
+            const values = allData
+                .map(item => Number(item[field]))
+                .filter(value => Number.isFinite(value));
 
-        const max = (field) =>
-            Math.max(...data.map(item =>
-                Number(item[field]) || 0
-            ));
+            if (values.length === 0) return 0;
 
-        const latest = data.reduce((latest, item) =>
-            new Date(item.created_at) > new Date(latest.created_at)
+            return values.reduce((sum, value) => sum + value, 0)
+                / values.length;
+        };
+
+        const max = (field) => {
+            const values = allData
+                .map(item => Number(item[field]))
+                .filter(value => Number.isFinite(value));
+
+            return values.length ? Math.max(...values) : 0;
+        };
+
+        const latest = allData.reduce((currentLatest, item) => {
+            if (!item.created_at) return currentLatest;
+            if (!currentLatest) return item;
+
+            return new Date(item.created_at) >
+                new Date(currentLatest.created_at)
                 ? item
-                : latest
-        );
+                : currentLatest;
+        }, null);
 
-        res.json({
-            totalRecords: data.length,
-
+        return res.json({
+            totalRecords: allData.length,
             avgReaderIn: avg("reader_in_voltage"),
             avgScannerIn: avg("scanner_in_voltage"),
             avgReaderOut: avg("reader_out_voltage"),
             avgScannerOut: avg("scanner_out_voltage"),
             avgMotorVoltage: avg("motor_voltage"),
-
             maxMotorCurrent: max("motor_current"),
-
             motorCounter: max("motor_counter"),
-
-            lastUpdate: latest.created_at
+            lastUpdate: latest?.created_at ?? null
         });
 
     } catch (err) {
-        res.status(500).json({
+        console.error("Report Server Error:", err);
+
+        return res.status(500).json({
             success: false,
             error: err.message
         });
