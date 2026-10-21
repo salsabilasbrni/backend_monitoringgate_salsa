@@ -53,6 +53,39 @@ app.get("/", (req, res) => {
 });
 
 // =======================
+// HEALTH CHECK
+// =======================
+app.get("/api/health", async (req, res) => {
+    try {
+        const { error } = await supabase
+            .from("monitoring_reset_gate")
+            .select("id")
+            .limit(1);
+
+        if (error) {
+            console.error("Database health check:", error.message);
+
+            return res.status(503).json({
+                backend: "Connected",
+                database: "Disconnected",
+            });
+        }
+
+        return res.status(200).json({
+            backend: "Connected",
+            database: "Connected",
+        });
+    } catch (err) {
+        console.error("Health check error:", err.message);
+
+        return res.status(503).json({
+            backend: "Connected",
+            database: "Disconnected",
+        });
+    }
+});
+
+// =======================
 // POST DATA DARI ESP32
 // =======================
 // app.post("/api/sensor", (req, res) => {
