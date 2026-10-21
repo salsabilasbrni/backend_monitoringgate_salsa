@@ -762,13 +762,7 @@ app.get("/api/report", async (req, res) => {
             avgReaderOut: avg("reader_out_voltage"),
             avgScannerOut: avg("scanner_out_voltage"),
             avgMotorVoltage: avg("motor_voltage"),
-            maxMotorCurrent: max("motor_current"),
-            motorCounter: allData.reduce((maximum, item) => {
-                const value = Number(item.motor_counter);
-                return Number.isFinite(value)
-                    ? Math.max(maximum, value)
-                    : maximum;
-            }, 0),
+            motorCounter: Number(latest?.motor_counter ?? 0),
             lastUpdate: latest?.created_at ?? null
         });
 
